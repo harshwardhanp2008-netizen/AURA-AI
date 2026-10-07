@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AURA · Spatial Cognition Engine</title>
+<meta name="description" content="AURA — a voice-enabled spatial cognition interface. Developed by Harshwardhan B. Pawar">
+</head>
+<body style="margin:0;background:#0a0612;display:flex;align-items:center;justify-content:center;min-height:100vh;">
+<div style="width:100%;max-width:960px;padding:16px;box-sizing:border-box;">
+
+<style>
+  .aura-root {
+    --aura-c: #c084fc;
+    --aura-c2: #f471b5;
+    --aura-dim: color-mix(in srgb, #c084fc 55%, transparent);
+    --aura-faint: color-mix(in srgb, #c084fc 16%, transparent);
+    --aura-bg: #0a0612;
+    --aura-ink: #efe6fb;
+    --aura-muted: #7d6f95;
+    --aura-alert: #ff5d5d;
+    font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+    background:
+      radial-gradient(ellipse 80% 60% at 70% 20%, rgba(192,132,252,.07), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 20% 90%, rgba(244,113,181,.05), transparent 60%),
+      var(--aura-bg);
+    color: var(--aura-ink);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    user-select: none;
+  }
+  .aura-noise {
+    position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: .5;
+    background-image:
+      linear-gradient(var(--aura-faint) 1px, transparent 1px),
+      linear-gradient(90deg, var(--aura-faint) 1px, transparent 1px);
+    background-size: 52px 52px;
+    mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 20%, transparent 90%);
+    -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 20%, transparent 90%);
+  }
+  .aura-scan {
+    position: absolute; inset: 0; pointer-events: none; z-index: 5;
+    background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(0,0,0,.25) 4px 5px);
+    opacity: .45;
+  }
+  .aura-vig {
+    position: absolute; inset: 0; pointer-events: none; z-index: 4;
+    background: radial-gradient(ellipse 130% 110% at 50% 42%, transparent 52%, rgba(0,0,0,.7) 100%);
+  }
+  .aura-inner { position: relative; z-index: 2; padding: 18px 22px 18px; }
+
+  .aura-top {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; letter-spacing: .3em; color: var(--aura-c);
+    margin-bottom: 18px;
+  }
+  .aura-top .brand { display: flex; align-items: center; gap: 10px; font-weight: 500; }
+  .aura-top .brand .glyph {
+    width: 22px; height: 22px; border: 1px solid var(--aura-dim);
+    transform: rotate(45deg); display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 12px var(--aura-faint);
+  }
+  .aura-top .brand .glyph i {
+    width: 8px; height: 8px; background: var(--aura-c);
+    box-shadow: 0 0 10px var(--aura-c);
+    animation: auraSpin 5s linear infinite;
+  }
+  @keyframes auraSpin { to { transform: rotate(360deg); } }
+  .aura-top .meta { color: var(--aura-muted); letter-spacing: .2em; font-size: 10px; text-align: right; }
+  .aura-top .meta b { color: var(--aura-c2); font-weight: 500; }
+
+  .aura-hero { text-align: center; margin-bottom: 8px; position: relative; }
+  .aura-hero .over {
+    font-size: 10px; letter-spacing: .5em; color: var(--aura-c2); margin-bottom: 10px;
+  }
+  .aura-hero h1 {
+    font-size: 38px; font-weight: 500; line-height: 1.1; margin: 0 0 10px;
+    background: linear-gradient(100deg, #fdf4ff 20%, var(--aura-c) 55%, var(--aura-c2) 90%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: .01em;
+  }
+  .aura-hero h1 .thin { font-weight: 400; }
+  .aura-hero p {
+    font-size: 14px; color: var(--aura-muted); margin: 0 auto 16px; max-width: 440px; line-height: 22px;
+  }
+
+  .aura-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .aura-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; border: 1px solid var(--aura-dim); color: var(--aura-c);
+    font-size: 11px; letter-spacing: .24em; padding: 10px 18px; border-radius: 4px;
+    cursor: pointer; font-weight: 500; font-family: inherit;
+    transition: all 160ms ease; position: relative; overflow: hidden;
+  }
+  .aura-btn::after {
+    content: ''; position: absolute; left: 0; bottom: 0; height: 1px; width: 0%;
+    background: linear-gradient(90deg, var(--aura-c), var(--aura-c2));
+    transition: width .25s ease;
+  }
+  .aura-btn:hover { background: var(--aura-faint); box-shadow: 0 0 20px var(--aura-faint); }
+  .aura-btn:hover::after { width: 100%; }
+  .aura-btn.armed {
+    background: linear-gradient(90deg, var(--aura-c), var(--aura-c2)); color: #150722;
+    border-color: transparent; box-shadow: 0 0 26px var(--aura-dim);
+  }
+  .aura-btn.listening {
+    border-color: var(--aura-alert); color: var(--aura-alert);
+    background: color-mix(in srgb, var(--aura-alert) 12%, transparent);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--aura-alert) 28%, transparent);
+    animation: auraBlink 1s infinite;
+  }
+  .aura-btn.sim { border-style: dashed; }
+  @keyframes auraBlink { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+  .aura-core-wrap { position: relative; height: 280px; margin: 4px 0 14px; }
+  .aura-core-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; }
+  .aura-frame {
+    position: absolute; inset: 0; pointer-events: none; z-index: 3;
+    border: 1px solid var(--aura-faint);
+    clip-path: polygon(0 14px, 14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px));
+  }
+  .aura-core-tag {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    font-size: 9px; letter-spacing: .4em; color: var(--aura-c); z-index: 3;
+    background: rgba(10,6,18,.85); padding: 3px 14px;
+  }
+  .aura-core-sub {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    font-size: 9px; letter-spacing: .3em; color: var(--aura-muted); z-index: 3;
+    animation: auraBlink 2.4s infinite; white-space: nowrap;
+  }
+  .aura-corner-label {
+    position: absolute; font-size: 8px; letter-spacing: .24em; color: var(--aura-muted); z-index: 3;
+  }
+  .aura-corner-label.tl { top: 10px; left: 14px; }
+  .aura-corner-label.tr { top: 10px; right: 14px; color: var(--aura-c2); }
+
+  .aura-voice {
+    border: 1px solid var(--aura-faint); border-radius: 6px; padding: 10px 14px;
+    background: rgba(192,132,252,.04); margin-bottom: 14px;
+  }
+  .aura-voice .vh {
+    display: flex; justify-content: space-between; font-size: 9px; letter-spacing: .26em;
+    color: var(--aura-muted); margin-bottom: 6px;
+  }
+  .aura-voice .vh .st { color: var(--aura-c); }
+  .aura-voice .vh .st.on { color: var(--aura-alert); }
+  .aura-voice .hear { font-size: 13px; color: #fdf4ff; min-height: 20px; }
+  .aura-voice .hear .prompt { color: var(--aura-muted); }
+  .aura-voice .cmd { font-size: 11px; color: var(--aura-c2); min-height: 16px; margin-top: 2px; letter-spacing: .08em; }
+  .aura-voice .cmd::before { content: '◆ '; color: var(--aura-muted); }
+  .aura-voice .wave { display: flex; align-items: flex-end; gap: 3px; height: 13px; margin-top: 7px; }
+  .aura-voice .wave i {
+    width: 3px; border-radius: 1px; height: 3px; background: var(--aura-dim);
+  }
+  .aura-voice .wave.live i { animation: auraWave .7s ease-in-out infinite; }
+  .aura-voice .wave i:nth-child(2n) { animation-delay: .12s; }
+  .aura-voice .wave i:nth-child(3n) { animation-delay: .24s; }
+  @keyframes auraWave { 0%,100% { height: 3px; } 50% { height: 12px; } }
+
+  .aura-bottom { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; align-items: start; }
+  .aura-tels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+  .aura-tel {
+    border: 1px solid var(--aura-faint); border-radius: 6px; padding: 9px 11px;
+    background: rgba(192,132,252,.03); position: relative; overflow: hidden;
+  }
+  .aura-tel::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--aura-dim), transparent);
+  }
+  .aura-tel .k { font-size: 9px; letter-spacing: .2em; color: var(--aura-muted); margin-bottom: 4px; }
+  .aura-tel .v { font-size: 19px; font-weight: 500; color: #fdf4ff; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+  .aura-tel .v small { font-size: 10px; color: var(--aura-c); margin-left: 2px; }
+
+  .aura-mods .label { font-size: 9px; letter-spacing: .3em; color: var(--aura-muted); margin-bottom: 8px; }
+  .aura-mods .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .aura-mod {
+    border: 1px solid var(--aura-faint); border-radius: 6px; padding: 9px 10px;
+    background: transparent; color: var(--aura-ink); text-align: left; cursor: pointer;
+    transition: all 160ms ease; font-family: inherit;
+  }
+  .aura-mod:hover { border-color: var(--aura-dim); background: rgba(192,132,252,.06); }
+  .aura-mod.active {
+    border-color: var(--aura-c);
+    background: rgba(192,132,252,.12);
+    box-shadow: 0 0 18px var(--aura-faint), inset 0 0 14px rgba(192,132,252,.06);
+  }
+  .aura-mod .num { font-size: 9px; color: var(--aura-c2); letter-spacing: .18em; }
+  .aura-mod .name { font-size: 12px; font-weight: 500; margin-top: 3px; color: #fdf4ff; }
+  .aura-mod .sub { font-size: 9px; color: var(--aura-muted); margin-top: 2px; }
+
+  .aura-log {
+    border: 1px solid var(--aura-faint); border-radius: 6px; padding: 10px 12px;
+    background: rgba(0,0,0,.25); font-size: 10px; line-height: 18px;
+    color: var(--aura-muted); letter-spacing: .06em; min-height: 128px;
+    font-family: "SF Mono", Consolas, "Courier New", monospace;
+  }
+  .aura-log .lh { color: var(--aura-c); letter-spacing: .24em; font-size: 9px; margin-bottom: 6px; font-family: inherit; }
+  .aura-log div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .aura-log .ok { color: var(--aura-c2); }
+
+  .aura-credit {
+    margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--aura-faint);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 9px; letter-spacing: .26em; color: var(--aura-muted);
+  }
+  .aura-credit .sig { color: var(--aura-c); display: inline-flex; align-items: center; gap: 8px; }
+  .aura-credit .sig::before {
+    content: ''; width: 16px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--aura-c2));
+    box-shadow: 0 0 6px var(--aura-dim);
+  }
+
+  .aura-boot {
+    position: absolute; inset: 0; z-index: 6; background: var(--aura-bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    transition: opacity .6s ease;
+  }
+  .aura-boot .t { font-size: 11px; letter-spacing: .5em; color: var(--aura-c); }
+  .aura-boot .ring {
+    width: 54px; height: 54px; border-radius: 50%;
+    border: 1px solid var(--aura-faint); border-top-color: var(--aura-c);
+    animation: auraRot 1s linear infinite;
+  }
+  @keyframes auraRot { to { transform: rotate(360deg); } }
+  .aura-boot.hide { opacity: 0; pointer-events: none; }
+
+  @media (max-width: 640px) {
+    .aura-hero h1 { font-size: 28px; }
+    .aura-bottom { grid-template-columns: 1fr; }
+    .aura-mods .row { grid-template-columns: repeat(2, 1fr); }
+    .aura-credit { flex-direction: column; gap: 4px; align-items: flex-start; }
+  }
+</style>
+
+<div class="aura-root" id="auraRoot">
+  <div class="aura-noise"></div>
+  <div class="aura-scan"></div>
+  <div class="aura-vig"></div>
+  <div class="aura-boot" id="auraBoot">
+    <div class="ring"></div>
+    <div class="t">AURA CORE BOOT SEQUENCE</div>
+  </div>
+  <div class="aura-inner">
+    <div class="aura-top">
+      <span class="brand"><span class="glyph"><i></i></span>AURA · SPATIAL COGNITION ENGINE</span>
+      <span class="meta">SENTIENT INSTANCE <b>02</b> · SECTOR 7G</span>
+    </div>
+
+    <div class="aura-hero">
+      <div class="over">COGNITIVE INTERFACE · VOICE-ENABLED</div>
+      <h1>Your mind, <span class="thin">rendered in light.</span></h1>
+      <p>Speak, gesture, and shape thought into form. AURA listens, learns, and illuminates the architecture of your ideas.</p>
+      <div class="aura-actions">
+        <button class="aura-btn" id="focusBtn">&#9672; ENGAGE COGNITION CORE</button>
+        <button class="aura-btn" id="voiceBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="3" width="6" height="11" rx="3"/>
+            <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/>
+            <path d="M12 18v3"/>
+          </svg>
+          <span id="voiceLabel">VOICE UPLINK</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="aura-core-wrap" id="coreStage">
+      <canvas id="coreCanvas"></canvas>
+      <div class="aura-frame"></div>
+      <div class="aura-core-tag">COGNITION CORE</div>
+      <div class="aura-corner-label tl">LAT 18.52 / LON 73.86</div>
+      <div class="aura-corner-label tr">LINK STABLE</div>
+      <div class="aura-core-sub">DRAG TO ROTATE · MOVE TO STEER</div>
+    </div>
+
+    <div class="aura-voice">
+      <div class="vh">
+        <span>NEURAL AUDIO ARRAY · SPEECH SYNAPSE</span>
+        <span class="st" id="voiceStatus">STANDBY</span>
+      </div>
+      <div class="hear" id="voiceHear"><span class="prompt">Say "engage", "scan", "hello", or name a construct to activate it&hellip;</span></div>
+      <div class="cmd" id="voiceCmd"></div>
+      <div class="wave" id="voiceWave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+
+    <div class="aura-bottom">
+      <div>
+        <div class="aura-tels">
+          <div class="aura-tel"><div class="k">CORTICAL LOAD</div><div class="v" id="a1">0<small>%</small></div></div>
+          <div class="aura-tel"><div class="k">SIGNAL PURITY</div><div class="v" id="a2">0<small>%</small></div></div>
+          <div class="aura-tel"><div class="k">THOUGHT FLUX</div><div class="v" id="a3">0<small>q/s</small></div></div>
+        </div>
+        <div class="aura-mods">
+          <div class="label">COGNITIVE CONSTRUCTS</div>
+          <div class="row" id="modRow">
+            <button class="aura-mod active" data-mode="core"><div class="num">C-01</div><div class="name">Dream cartographer</div><div class="sub">maps the unrealized</div></button>
+            <button class="aura-mod" data-mode="lattice"><div class="num">C-02</div><div class="name">Echo archive</div><div class="sub">stores every spark</div></button>
+            <button class="aura-mod" data-mode="ring"><div class="num">C-03</div><div class="name">Zenith lens</div><div class="sub">focus beyond noise</div></button>
+            <button class="aura-mod" data-mode="forge"><div class="num">C-04</div><div class="name">Genesis crucible</div><div class="sub">forges new worlds</div></button>
+          </div>
+        </div>
+      </div>
+      <div class="aura-log" id="sysLog">
+        <div class="lh">SYSTEM EVENT LOG</div>
+      </div>
+    </div>
+
+    <div class="aura-credit">
+      <span>PROTOCOL AURA-02 · SENTIENT BUILD</span>
+      <span class="sig">DEVELOPED BY HARSHWARDHAN B. PAWAR</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const root = document.getElementById('auraRoot');
+  const canvas = document.getElementById('coreCanvas');
+  const stage = document.getElementById('coreStage');
+  const ctx = canvas.getContext('2d');
+  const PRIME = '#c084fc';
+  const SEC = '#f471b5';
+  const logEl = document.getElementById('sysLog');
+
+  function log(msg, ok) {
+    const d = document.createElement('div');
+    if (ok) d.className = 'ok';
+    const t = new Date();
+    d.textContent = '[' + String(t.getMinutes()).padStart(2,'0') + ':' + String(t.getSeconds()).padStart(2,'0') + '] ' + msg;
+    logEl.appendChild(d);
+    while (logEl.children.length > 9) logEl.removeChild(logEl.children[1]);
+  }
+
+  let W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  function resize() {
+    const r = stage.getBoundingClientRect();
+    W = r.width; H = r.height;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  new ResizeObserver(resize).observe(stage);
+
+  function hexPoints(rad, y) {
+    const pts = [];
+    for (let i = 0; i < 6; i++) {
+      const a = (Math.PI / 3) * i + Math.PI / 6;
+      pts.push([Math.cos(a) * rad, y, Math.sin(a) * rad]);
+    }
+    return pts;
+  }
+  const hexA = hexPoints(1, -0.5), hexB = hexPoints(1, 0.5);
+  const hexEdges = [];
+  for (let i = 0; i < 6; i++) {
+    hexEdges.push([i, (i + 1) % 6]);
+    hexEdges.push([i + 6, ((i + 1) % 6) + 6]);
+    hexEdges.push([i, i + 6]);
+  }
+  const hexVerts = hexA.concat(hexB);
+  const octa = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+  const octaEdges = [[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,4],[2,5],[3,4],[3,5]];
+
+  const cloud = [];
+  for (let i = 0; i < 110; i++) {
+    const th = Math.acos(2 * Math.random() - 1), ph = Math.random() * Math.PI * 2;
+    cloud.push([Math.sin(th)*Math.cos(ph), Math.sin(th)*Math.sin(ph), Math.cos(th), Math.random()]);
+  }
+  const rings = [
+    { rad: 1.55, tiltX: 0.9, speed: 0.5, phase: 0 },
+    { rad: 1.8, tiltX: -0.6, speed: -0.35, phase: 2.1 },
+    { rad: 2.05, tiltX: 1.35, speed: 0.22, phase: 4.2 }
+  ];
+
+  let mode = 'core';
+  let targetRX = -0.4, targetRY = 0;
+  let rx = targetRX, ry = targetRY;
+  let dragging = false, px = 0, py = 0;
+  let charge = 0;
+  let listening = false;
+
+  function rotate(p) {
+    let [x, y, z] = p;
+    let c = Math.cos(ry), s = Math.sin(ry);
+    [x, z] = [x * c - z * s, x * s + z * c];
+    c = Math.cos(rx); s = Math.sin(rx);
+    [y, z] = [y * c - z * s, y * s + z * c];
+    return [x, y, z];
+  }
+  function tiltRing(p, tilt) {
+    const c = Math.cos(tilt), s = Math.sin(tilt);
+    return [p[0], p[1] * c - p[2] * s, p[1] * s + p[2] * c];
+  }
+  function project(p, scale) {
+    const R = Math.min(W, H) * 0.26 * scale;
+    const f = 3.4;
+    const d = f / (f + p[2]);
+    return [W / 2 + p[0] * R * d, H / 2 + p[1] * R * d, d];
+  }
+
+  stage.addEventListener('pointermove', e => {
+    const r = stage.getBoundingClientRect();
+    const mx = (e.clientX - r.left) / r.width - 0.5;
+    const my = (e.clientY - r.top) / r.height - 0.5;
+    if (dragging) {
+      targetRY += (e.clientX - px) * 0.009;
+      targetRX += (e.clientY - py) * 0.009;
+      targetRX = Math.max(-1.2, Math.min(1.2, targetRX));
+    } else {
+      targetRY = mx * 1.8;
+      targetRX = -0.4 + my * 1.1;
+    }
+    px = e.clientX; py = e.clientY;
+  });
+  stage.addEventListener('pointerdown', () => dragging = true);
+  window.addEventListener('pointerup', () => dragging = false);
+  stage.addEventListener('pointerleave', () => { if (!dragging) { targetRX = -0.4; targetRY = 0; } });
+
+  const modRow = document.getElementById('modRow');
+  const MOD_NAMES = { core: 'Dream cartographer', lattice: 'Echo archive', ring: 'Zenith lens', forge: 'Genesis crucible' };
+  function activateModule(name, viaVoice) {
+    const btn = document.querySelector('.aura-mod[data-mode="' + name + '"]');
+    if (!btn) return;
+    document.querySelectorAll('.aura-mod').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    mode = name;
+    charge = 1.6;
+    log('Construct online -> ' + MOD_NAMES[name], true);
+    if (viaVoice) showCmd('CONSTRUCT ENGAGED -> ' + MOD_NAMES[name].toUpperCase());
+  }
+  modRow.addEventListener('click', e => {
+    const btn = e.target.closest('.aura-mod');
+    if (btn) activateModule(btn.dataset.mode, false);
+  });
+
+  const focusBtn = document.getElementById('focusBtn');
+  function engageCore(viaVoice) {
+    const armed = focusBtn.classList.toggle('armed');
+    focusBtn.textContent = armed ? '\u25c6 CORE ENGAGED · COGNITION LIVE' : '\u25d2 ENGAGE COGNITION CORE';
+    charge = 2;
+    log(armed ? 'Cognition core engaged — full neural bandwidth' : 'Core returned to idle orbit', armed);
+    if (viaVoice) showCmd('COMMAND ACCEPTED -> CORE ' + (armed ? 'ENGAGED' : 'IDLE'));
+  }
+  focusBtn.addEventListener('click', () => engageCore(false));
+
+  const voiceBtn = document.getElementById('voiceBtn');
+  const voiceLabel = document.getElementById('voiceLabel');
+  const voiceStatus = document.getElementById('voiceStatus');
+  const voiceHear = document.getElementById('voiceHear');
+  const voiceCmd = document.getElementById('voiceCmd');
+  const voiceWave = document.getElementById('voiceWave');
+
+  function showCmd(text) {
+    voiceCmd.textContent = text;
+    clearTimeout(showCmd._t);
+    showCmd._t = setTimeout(() => { voiceCmd.textContent = ''; }, 5000);
+  }
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec = null, simTimer = null;
+
+  const COMMANDS = [
+    { keys: ['engage', 'activate', 'focus', 'core'], run: () => engageCore(true) },
+    { keys: ['scan', 'sweep', 'analyze'], run: () => { charge = 2.2; v3 += 300; log('Deep scan sweeping sector 7G…', true); showCmd('DEEP SCAN -> SWEEPING SECTOR 7G'); } },
+    { keys: ['dream', 'cartograph'], run: () => activateModule('core', true) },
+    { keys: ['echo', 'archive', 'memory'], run: () => activateModule('lattice', true) },
+    { keys: ['zenith', 'lens', 'focus field'], run: () => activateModule('ring', true) },
+    { keys: ['genesis', 'crucible', 'forge'], run: () => activateModule('forge', true) },
+    { keys: ['status', 'report', 'diagnostic'], run: () => showCmd('STATUS -> LOAD ' + v1.toFixed(0) + '% · PURITY ' + v2.toFixed(1) + '% · FLUX ' + v3.toFixed(0) + 'q/s') },
+    { keys: ['hello', 'hi', 'hey', 'namaste'], run: () => { log('Vocal signature recognized -> Harshwardhan', true); showCmd('GREETING ACKNOWLEDGED -> WELCOME BACK, HARSHWARDHAN'); } },
+    { keys: ['sleep', 'halt', 'stop', 'power down'], run: () => { charge = 0; log('Core powered down to standby'); showCmd('AURA SLEEPING -> STANDBY MODE'); } }
+  ];
+
+  function handleTranscript(text) {
+    voiceHear.innerHTML = '';
+    const span = document.createElement('span');
+    span.textContent = '"' + text + '"';
+    voiceHear.appendChild(span);
+    log('Audio parsed -> "' + text.slice(0, 40) + '"');
+    const low = text.toLowerCase();
+    const hit = COMMANDS.find(c => c.keys.some(k => low.includes(k)));
+    if (hit) { hit.run(); charge = Math.max(charge, 1.2); }
+    else { log('Unknown pattern -> archived to Echo'); showCmd('PATTERN ARCHIVED -> ECHO ACQUIRED NEW MEMORY'); }
+  }
+
+  function setListening(on) {
+    listening = on;
+    voiceBtn.classList.toggle('listening', on);
+    voiceWave.classList.toggle('live', on);
+    voiceStatus.textContent = on ? 'LISTENING' : 'STANDBY';
+    voiceStatus.classList.toggle('on', on);
+    voiceLabel.textContent = on ? 'LISTENING…' : 'VOICE UPLINK';
+  }
+
+  const SIM = ['hello aura', 'engage core', 'run deep scan', 'open echo archive', 'status report', 'ignite genesis crucible', 'scan the sector'];
+  let simIdx = 0;
+  function startSim() {
+    if (simTimer) return;
+    simTimer = setInterval(() => {
+      if (!listening) return;
+      handleTranscript(SIM[simIdx % SIM.length]); simIdx++;
+    }, 2800);
+  }
+
+  if (SR) {
+    rec = new SR();
+    rec.lang = 'en-US';
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.onresult = e => {
+      let interim = '', final = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript;
+        else interim += e.results[i][0].transcript;
+      }
+      if (interim) {
+        voiceHear.innerHTML = '';
+        const s = document.createElement('span');
+        s.style.color = 'rgba(239,230,251,.5)';
+        s.textContent = '"' + interim + '"';
+        voiceHear.appendChild(s);
+      }
+      if (final) handleTranscript(final.trim());
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = ev => {
+      setListening(false);
+      if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
+        voiceStatus.textContent = 'MIC BLOCKED';
+        voiceHear.innerHTML = '<span class="prompt">Microphone blocked — allow permission and retry, or use the simulated array.</span>';
+        voiceBtn.classList.add('sim');
+      } else if (ev.error === 'network') {
+        voiceStatus.textContent = 'OFFLINE';
+        voiceHear.innerHTML = '<span class="prompt">Speech service unreachable — engaging simulated array.</span>';
+        voiceBtn.classList.add('sim'); startSim();
+      }
+    };
+  } else {
+    voiceBtn.classList.add('sim');
+    voiceLabel.textContent = 'SIM ARRAY';
+    voiceStatus.textContent = 'SIM MODE';
+    voiceHear.innerHTML = '<span class="prompt">No speech engine found — simulated array active. Click to emit a test phrase.</span>';
+  }
+
+  voiceBtn.addEventListener('click', () => {
+    if (listening) {
+      if (rec) { try { rec.stop(); } catch(e){} }
+      setListening(false);
+      return;
+    }
+    if (rec && !voiceBtn.classList.contains('sim')) {
+      try { rec.start(); setListening(true); charge = 1.2;
+        voiceHear.innerHTML = '<span class="prompt">Listening… speak to AURA.</span>';
+      } catch(e) { voiceBtn.classList.add('sim'); }
+    }
+    if (voiceBtn.classList.contains('sim')) {
+      setListening(true); charge = 1.2;
+      handleTranscript(SIM[simIdx % SIM.length]); simIdx++;
+      startSim();
+      if (!rec) setTimeout(() => setListening(false), 2200);
+    }
+  });
+
+  const a1 = document.getElementById('a1'), a2 = document.getElementById('a2'), a3 = document.getElementById('a3');
+  let v1 = 41, v2 = 91.2, v3 = 377;
+  setInterval(() => {
+    v1 = Math.max(8, Math.min(96, v1 + (Math.random() - 0.5) * 7 + (listening ? 6 : 0)));
+    v2 = Math.max(60, Math.min(99.9, v2 + (Math.random() - 0.5) * 2.6));
+    v3 = Math.max(120, Math.min(990, v3 + (Math.random() - 0.5) * 60));
+    a1.innerHTML = v1.toFixed(0) + '<small>%</small>';
+    a2.innerHTML = v2.toFixed(1) + '<small>%</small>';
+    a3.innerHTML = v3.toFixed(0) + '<small>q/s</small>';
+  }, 900);
+
+  const boot = document.getElementById('auraBoot');
+  setTimeout(() => {
+    boot.classList.add('hide');
+    charge = 1.5;
+    log('AURA instance 02 online', true);
+    log('Neural audio array calibrated');
+    log('All constructs responding');
+  }, 1600);
+
+  let t = 0;
+  function draw() {
+    requestAnimationFrame(draw);
+    if (!W || !H) return;
+    t += 0.016;
+    if (!dragging) targetRY += 0.0055 * (1 + charge * 2.4);
+    charge = Math.max(0, charge - 0.008);
+    rx += (targetRX - rx) * 0.08;
+    ry += (targetRY - ry) * 0.08;
+
+    const hue = listening ? '#ff5d5d' : null;
+    ctx.clearRect(0, 0, W, H);
+
+    const g = ctx.createRadialGradient(W/2, H*0.7, 4, W/2, H*0.7, W*0.36);
+    g.addColorStop(0, listening ? 'rgba(255,93,93,0.15)' : 'rgba(192,132,252,' + (0.15 + charge * 0.12) + ')');
+    g.addColorStop(1, 'rgba(192,132,252,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(W/2, H*0.7, W*0.36, H*0.1, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    ctx.lineWidth = 1;
+    for (const ring of rings) {
+      ctx.beginPath();
+      const pts = [];
+      for (let i = 0; i <= 72; i++) {
+        const a = (i / 72) * Math.PI * 2 + t * ring.speed + ring.phase;
+        let p = tiltRing([Math.cos(a) * ring.rad, 0, Math.sin(a) * ring.rad], ring.tiltX);
+        pts.push(project(rotate(p), 1));
+      }
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.strokeStyle = listening ? 'rgba(255,93,93,0.2)' : 'rgba(192,132,252,0.18)';
+      ctx.stroke();
+      const a = t * ring.speed * 2 + ring.phase;
+      let p = rotate(tiltRing([Math.cos(a) * ring.rad, 0, Math.sin(a) * ring.rad], ring.tiltX));
+      const q = project(p, 1);
+      ctx.beginPath(); ctx.arc(q[0], q[1], 2.2, 0, Math.PI*2);
+      ctx.fillStyle = hue || SEC;
+      ctx.shadowColor = hue || SEC; ctx.shadowBlur = 9;
+      ctx.fill(); ctx.shadowBlur = 0;
+    }
+
+    const scale = 1 + charge * 0.06;
+
+    const hv = hexVerts.map(p => project(rotate([p[0]*scale, p[1]*scale, p[2]*scale]), 1));
+    ctx.lineWidth = 1;
+    for (const [a, b] of hexEdges) {
+      const za = (hv[a][2] + hv[b][2]) / 2;
+      ctx.beginPath();
+      ctx.moveTo(hv[a][0], hv[a][1]);
+      ctx.lineTo(hv[b][0], hv[b][1]);
+      const base = listening ? 'rgba(255,120,150,' : 'rgba(192,132,252,';
+      ctx.strokeStyle = base + (0.15 + za * 0.62).toFixed(3) + ')';
+      ctx.stroke();
+    }
+    for (const q of hv) {
+      ctx.beginPath();
+      ctx.arc(q[0], q[1], 2.2 * q[2], 0, Math.PI*2);
+      ctx.fillStyle = hue || PRIME;
+      ctx.shadowColor = hue || PRIME; ctx.shadowBlur = 9;
+      ctx.fill(); ctx.shadowBlur = 0;
+    }
+
+    const ory = -ry * 1.6 + t * 0.5;
+    const savedRy = ry;
+    ry = ory;
+    const ov = octa.map(p => project(rotate([p[0]*0.55*scale, p[1]*0.55*scale, p[2]*0.55*scale]), 1));
+    ry = savedRy;
+    for (const [a, b] of octaEdges) {
+      const za = (ov[a][2] + ov[b][2]) / 2;
+      ctx.beginPath();
+      ctx.moveTo(ov[a][0], ov[a][1]);
+      ctx.lineTo(ov[b][0], ov[b][1]);
+      const base = listening ? 'rgba(255,120,150,' : 'rgba(244,113,181,';
+      ctx.strokeStyle = base + (0.15 + za * 0.65).toFixed(3) + ')';
+      ctx.stroke();
+    }
+    for (const q of ov) {
+      ctx.beginPath();
+      ctx.arc(q[0], q[1], 1.8 * q[2], 0, Math.PI*2);
+      ctx.fillStyle = hue || SEC;
+      ctx.shadowColor = hue || SEC; ctx.shadowBlur = 8;
+      ctx.fill(); ctx.shadowBlur = 0;
+    }
+
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3.2);
+    const coreR = 5 + pulse * 3 + charge * 10;
+    const cg = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, coreR * 3.2);
+    cg.addColorStop(0, 'rgba(255,240,255,0.95)');
+    cg.addColorStop(0.4, listening ? 'rgba(255,93,93,0.5)' : 'rgba(244,113,181,0.5)');
+    cg.addColorStop(1, 'rgba(192,132,252,0)');
+    ctx.fillStyle = cg;
+    ctx.beginPath(); ctx.arc(W/2, H/2, coreR * 3.2, 0, Math.PI*2); ctx.fill();
+
+    for (const [x, y, z, seed] of cloud) {
+      const wob = 1 + Math.sin(t * 2.2 + seed * 6.28) * 0.07;
+      const q = project(rotate([x * 1.6 * wob, y * 1.6 * wob, z * 1.6 * wob]), 1);
+      const al = 0.2 + 0.55 * q[2] - 0.2;
+      ctx.beginPath();
+      ctx.arc(q[0], q[1], (0.7 + seed * 1.1) * q[2], 0, Math.PI*2);
+      ctx.fillStyle = listening
+        ? 'rgba(255,160,180,' + al.toFixed(3) + ')'
+        : 'rgba(220,170,255,' + al.toFixed(3) + ')';
+      ctx.fill();
+    }
+
+    const sy = H * (0.5 + 0.42 * Math.sin(t * 0.85));
+    const sg = ctx.createLinearGradient(0, sy - 22, 0, sy + 22);
+    sg.addColorStop(0, 'rgba(192,132,252,0)');
+    sg.addColorStop(0.5, listening ? 'rgba(255,93,93,0.10)' : 'rgba(192,132,252,0.10)');
+    sg.addColorStop(1, 'rgba(192,132,252,0)');
+    ctx.fillStyle = sg;
+    ctx.fillRect(0, sy - 22, W, 44);
+  }
+  draw();
+})();
+</script>
+
+</div>
+</body>
+</html>
